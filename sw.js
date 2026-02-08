@@ -1,7 +1,8 @@
 // Service Worker for Video Annotation Tool
-// Handles range requests for cached video files in Safari iOS
+// Holds video File in memory and serves range requests for Safari iOS
 
-const VIDEO_CACHE = 'video-cache-v1';
+let videoFile = null;
+let videoMimeType = 'video/mp4';
 
 self.addEventListener('install', () => {
     self.skipWaiting();
@@ -11,36 +12,43 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
+// Receive the video File object from the main thread
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'store-video') {
+        videoFile = event.data.file;
+        videoMimeType = event.data.mimeType || 'video/mp4';
+    }
+});
+
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Only intercept requests to our virtual video path
-    // Match any path ending in /__video__/current to work regardless of base path
     if (url.pathname.endsWith('/__video__/current')) {
         event.respondWith(handleVideoRequest(event.request));
     }
 });
 
 async function handleVideoRequest(request) {
-    const cache = await caches.open(VIDEO_CACHE);
-    // Match by the full request URL so it works at any base path
-    const cachedResponse = await cache.match(request.url);
-
-    if (!cachedResponse) {
+    if (!videoFile) {
         return new Response('Video not found', { status: 404 });
     }
 
+    const totalSize = videoFile.size;
     const rangeHeader = request.headers.get('range');
+
     if (!rangeHeader) {
-        return cachedResponse;
+        // Full request — return the whole file
+        return new Response(videoFile, {
+            status: 200,
+            headers: {
+                'Content-Type': videoMimeType,
+                'Content-Length': totalSize.toString(),
+                'Accept-Ranges': 'bytes'
+            }
+        });
     }
 
-    // Use blob() instead of arrayBuffer() — blob.slice() doesn't load
-    // the entire file into memory, it creates a view into the stored data.
-    const blob = await cachedResponse.blob();
-    const totalSize = blob.size;
-    const contentType = cachedResponse.headers.get('Content-Type') || 'video/mp4';
-
+    // Parse range header
     const bytes = /^bytes=(\d+)-(\d+)?$/.exec(rangeHeader);
     if (!bytes) {
         return new Response(null, {
@@ -61,14 +69,14 @@ async function handleVideoRequest(request) {
         });
     }
 
-    // Slice the blob — this is memory-efficient, doesn't copy the whole file
-    const sliced = blob.slice(start, end + 1, contentType);
+    // Slice the file — memory-efficient, creates a view not a copy
+    const sliced = videoFile.slice(start, end + 1, videoMimeType);
 
     return new Response(sliced, {
         status: 206,
         statusText: 'Partial Content',
         headers: {
-            'Content-Type': contentType,
+            'Content-Type': videoMimeType,
             'Content-Length': (end - start + 1).toString(),
             'Content-Range': `bytes ${start}-${end}/${totalSize}`,
             'Accept-Ranges': 'bytes'

@@ -1109,28 +1109,20 @@ async function handleVideoLoad(e) {
         : file.name;
     videoNameDisplay.textContent = displayName;
 
-    // Store the video in Cache API so the service worker can serve it
-    // with proper range request support (required by Safari for video)
-    if (swReady && 'caches' in window) {
-        try {
-            const cache = await caches.open('video-cache-v1');
-            // Clear any previously cached video
-            const videoUrl = new URL('__video__/current', location.href).href;
-            await cache.delete(videoUrl);
-            // Store the file as a Response in the cache
-            const response = new Response(file, {
-                headers: { 'Content-Type': mimeType }
-            });
-            await cache.put(videoUrl, response);
-            // Set video src — service worker intercepts this and
-            // serves with range request support for Safari
-            video.src = videoUrl;
-        } catch (err) {
-            console.warn('Cache API failed, falling back to blob URL:', err);
-            loadVideoAsBlobUrl(file, mimeType);
-        }
+    // Send the File to the service worker so it can serve range requests
+    // (Safari requires proper HTTP 206 responses for video playback)
+    if (swReady && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'store-video',
+            file: file,
+            mimeType: mimeType
+        });
+        // Point video at the virtual path — service worker intercepts
+        // and serves with range request support
+        const videoUrl = new URL('__video__/current', location.href).href;
+        video.src = videoUrl;
     } else {
-        // Fallback for when service worker isn't ready yet
+        // Fallback when service worker isn't ready
         loadVideoAsBlobUrl(file, mimeType);
     }
 
