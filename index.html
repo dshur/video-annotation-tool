@@ -989,24 +989,43 @@ function init() {
     registerServiceWorker();
 }
 
-async function registerServiceWorker() {
+// Returns a promise that resolves when the service worker is active
+let swReadyPromise = null;
+
+function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    try {
-        const reg = await navigator.serviceWorker.register('sw.js');
-        // Wait for the service worker to be active
-        if (reg.active) {
-            swReady = true;
-        } else {
-            const worker = reg.installing || reg.waiting;
-            if (worker) {
-                worker.addEventListener('statechange', () => {
-                    if (worker.state === 'activated') swReady = true;
-                });
+    swReadyPromise = new Promise(async (resolve) => {
+        try {
+            const reg = await navigator.serviceWorker.register('sw.js');
+
+            if (navigator.serviceWorker.controller) {
+                // Already controlling this page (return visit)
+                swReady = true;
+                resolve();
+                return;
             }
+
+            // First visit — wait for the new worker to activate and claim
+            const worker = reg.installing || reg.waiting || reg.active;
+            if (!worker) { resolve(); return; }
+
+            worker.addEventListener('statechange', () => {
+                if (worker.state === 'activated') {
+                    swReady = true;
+                    resolve();
+                }
+            });
+
+            // Also listen for controllerchange (fires after claim())
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                swReady = true;
+                resolve();
+            });
+        } catch (err) {
+            console.warn('Service worker registration failed:', err);
+            resolve(); // resolve anyway so video loading doesn't hang
         }
-    } catch (err) {
-        console.warn('Service worker registration failed:', err);
-    }
+    });
 }
 
 // Event Listeners
@@ -1109,6 +1128,11 @@ async function handleVideoLoad(e) {
         : file.name;
     videoNameDisplay.textContent = displayName;
 
+    // Wait for service worker if it's still starting up (first visit)
+    if (!swReady && swReadyPromise) {
+        await swReadyPromise;
+    }
+
     // Send the File to the service worker so it can serve range requests
     // (Safari requires proper HTTP 206 responses for video playback)
     if (swReady && navigator.serviceWorker.controller) {
@@ -1122,7 +1146,7 @@ async function handleVideoLoad(e) {
         const videoUrl = new URL('__video__/current', location.href).href;
         video.src = videoUrl;
     } else {
-        // Fallback when service worker isn't ready
+        // Fallback when service worker isn't available
         loadVideoAsBlobUrl(file, mimeType);
     }
 
