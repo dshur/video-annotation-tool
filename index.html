@@ -156,6 +156,40 @@ h1 {
     border-radius: 8px;
 }
 
+.skip-overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.skip-overlay.left {
+    left: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.15) 0%, transparent 70%);
+}
+
+.skip-overlay.right {
+    right: 0;
+    background: radial-gradient(circle at 70% 50%, rgba(255,255,255,0.15) 0%, transparent 70%);
+}
+
+.skip-overlay.visible {
+    opacity: 1;
+}
+
+.skip-overlay-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
 .scrubber-container {
     position: relative;
     height: 32px;
@@ -844,6 +878,12 @@ h1 {
                 <div class="video-overlay" id="video-overlay">
                     <span class="tap-hint">Tap to play/pause</span>
                 </div>
+                <div class="skip-overlay left" id="skip-overlay-left">
+                    <span class="skip-overlay-text">-10s</span>
+                </div>
+                <div class="skip-overlay right" id="skip-overlay-right">
+                    <span class="skip-overlay-text">+10s</span>
+                </div>
             </div>
 
             <div class="scrubber-container">
@@ -1289,10 +1329,28 @@ function handleVideoTap(e) {
     if (e.target !== video && e.target !== videoContainer && e.target !== videoOverlay) {
         return;
     }
-    togglePlayPause();
 
-    videoOverlay.classList.add('visible');
-    setTimeout(() => videoOverlay.classList.remove('visible'), 300);
+    const rect = videoContainer.getBoundingClientRect();
+    const x = (e.clientX || (e.changedTouches && e.changedTouches[0].clientX) || 0) - rect.left;
+    const pct = x / rect.width;
+
+    if (pct < 0.33) {
+        skip(-10);
+        flashOverlay('skip-overlay-left');
+    } else if (pct > 0.67) {
+        skip(10);
+        flashOverlay('skip-overlay-right');
+    } else {
+        togglePlayPause();
+        videoOverlay.classList.add('visible');
+        setTimeout(() => videoOverlay.classList.remove('visible'), 300);
+    }
+}
+
+function flashOverlay(id) {
+    const el = document.getElementById(id);
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 400);
 }
 
 function togglePlayPause() {
