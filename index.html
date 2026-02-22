@@ -357,7 +357,7 @@ h1 {
 .note-input-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .note-input-header {
@@ -441,7 +441,7 @@ h1 {
     resize: none;
     font-family: inherit;
     transition: border-color 0.2s;
-    min-height: 50px;
+    min-height: 44px;
     max-height: 80px;
 }
 
@@ -455,7 +455,7 @@ h1 {
 }
 
 .save-btn {
-    padding: 14px;
+    padding: 10px;
     border: none;
     border-radius: 10px;
     background: #2ecc71;
@@ -463,7 +463,7 @@ h1 {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    min-height: 48px;
+    min-height: 44px;
 }
 
 .save-btn:active {
@@ -476,7 +476,7 @@ h1 {
 }
 
 .quick-notes-header {
-    display: flex;
+    display: none;
     justify-content: space-between;
     align-items: center;
     margin-top: 4px;
@@ -492,13 +492,15 @@ h1 {
 .quick-notes {
     display: flex;
     gap: 6px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .quick-note-btn {
-    flex: 1;
-    min-width: calc(50% - 3px);
-    padding: 14px 10px;
+    flex: 0 0 auto;
+    min-width: auto;
+    padding: 10px 14px;
     border: none;
     border-radius: 10px;
     background: #2a2a4e;
@@ -507,7 +509,8 @@ h1 {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
-    min-height: 54px;
+    min-height: 44px;
+    white-space: nowrap;
 }
 
 .quick-note-btn:active {
@@ -843,8 +846,8 @@ h1 {
     cursor: default;
 }
 
-/* iPad / tablet layout */
-@media (min-width: 768px) {
+/* iPad portrait layout */
+@media (min-width: 768px) and (orientation: portrait) {
     .video-container {
         aspect-ratio: 16 / 9;
         max-height: 35vh;
@@ -859,14 +862,189 @@ h1 {
         padding: 0 20px 20px 20px;
     }
 
+    .note-input-container {
+        gap: 8px;
+    }
+
+    #note-input {
+        min-height: 50px;
+    }
+
+    .save-btn {
+        padding: 14px;
+        min-height: 48px;
+    }
+
+    .quick-notes-header {
+        display: flex;
+    }
+
     .quick-notes {
         flex-wrap: nowrap;
+        overflow-x: visible;
     }
 
     .quick-note-btn {
+        flex: 1;
         min-width: 0;
         font-size: 1.05rem;
         min-height: 54px;
+        padding: 14px 10px;
+        white-space: normal;
+    }
+}
+
+/* Landscape layout — side-by-side grid */
+@media (min-width: 768px) and (orientation: landscape) {
+    .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .video-section {
+        grid-column: 1;
+        grid-row: 1 / -1;
+        overflow-y: auto;
+    }
+
+    .video-container {
+        aspect-ratio: auto;
+        max-height: none;
+    }
+
+    #video-player {
+        object-fit: contain;
+    }
+
+    .notes-input-section {
+        grid-column: 2;
+        grid-row: 1;
+        border-top: none;
+        border-left: 1px solid #2a2a4e;
+        padding: 8px 12px;
+    }
+
+    .notes-list-wrapper {
+        grid-column: 2;
+        grid-row: 2;
+        border-left: 1px solid #2a2a4e;
+        padding: 0 12px 12px 12px;
+    }
+}
+
+/* iPhone landscape — ultra-compact */
+@media (max-height: 440px) and (orientation: landscape) {
+    header {
+        padding: 4px 12px;
+    }
+
+    h1 {
+        font-size: 0.95rem;
+    }
+
+    .header-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .load-btn {
+        padding: 4px 10px;
+        min-height: 34px;
+        font-size: 0.8rem;
+    }
+
+    .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .video-section {
+        grid-column: 1;
+        grid-row: 1 / -1;
+        overflow-y: auto;
+    }
+
+    .video-container {
+        aspect-ratio: auto;
+        max-height: none;
+    }
+
+    .scrubber-container {
+        height: 24px;
+    }
+
+    .video-controls {
+        padding: 4px 10px;
+    }
+
+    .play-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .skip-btn {
+        width: 40px;
+        height: 36px;
+        font-size: 0.75rem;
+    }
+
+    .playback-controls {
+        gap: 8px;
+    }
+
+    .notes-input-section {
+        grid-column: 2;
+        grid-row: 1;
+        border-top: none;
+        border-left: 1px solid #2a2a4e;
+        padding: 6px 8px;
+    }
+
+    .notes-list-wrapper {
+        grid-column: 2;
+        grid-row: 2;
+        border-left: 1px solid #2a2a4e;
+        padding: 0 8px 8px 8px;
+    }
+
+    .note-input-container {
+        gap: 4px;
+    }
+
+    #note-input {
+        min-height: 36px;
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+
+    .save-btn {
+        padding: 6px;
+        min-height: 36px;
+        font-size: 0.9rem;
+    }
+
+    .quick-note-btn {
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+
+    .note-timestamp {
+        font-size: 1rem;
+        padding: 4px 8px;
+    }
+
+    .notes-header {
+        margin: 6px 0 4px 0;
+        padding-bottom: 4px;
+    }
+
+    .note-item {
+        padding: 6px;
     }
 }
     </style>
